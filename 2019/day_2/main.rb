@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'pry'
 
 class Intcode
@@ -16,7 +18,7 @@ end
 
 class ShipComputer
   def initialize
-    @intcode = Intcode.new.parse
+    @intcode = Intcode.new.parse.freeze
   end
 
   # Opcode 1 adds together numbers read from two positions and stores the result in a third position.
@@ -27,11 +29,13 @@ class ShipComputer
   # Once you're done processing an opcode, move to the next one by stepping forward 4 positions.
 
   def run_intcode
-    restore_gravity
-    dup = @intcode
+    dup = @intcode.dup
+    restore_gravity(dup)
+
     dup.each_slice(4) do |opcode, noun, verb, target|
       break if opcode == 99
-      evaluate(opcode, noun, verb, target)
+      raise "Something went wrong..." if wrong?(opcode)
+      dup = evaluate(dup, opcode, noun, verb, target)
     end
     dup[0]
   end
@@ -41,49 +45,55 @@ class ShipComputer
   # To do this, before running the program, replace position 1 with the value 12
   # and replace position 2 with the value 2.
   # What value is left at position 0 after the program halts?
-  def restore_gravity
-    @intcode[1] = 12
-    @intcode[2] = 2
+  def restore_gravity(dup)
+    dup[1] = 12
+    dup[2] = 2
   end
 
   def moon_gravity
     target_output = 19690720
     inputs        = Array(0..99)
-    memory        = @intcode
+    dup           = nil
     noun          = nil
     verb          = nil
 
-    while memory[0] != target_output do
-      inputs.each do |n1|
-        noun = n1
-        inputs.each do |n2|
-          verb = n2
-          puts "noun #{noun} - verb #{verb}"
-          memory.each_slice(4) do |opcode, _, _, target|
-            evaluate(opcode, noun, verb, target)
-            break if memory[0] == target_output
-            memory = @intcode
-          end
-          break if memory[0] == target_output
+
+    inputs.each do |noun|
+      inputs.each do |verb|
+        dup = @intcode.dup
+
+        dup.each_slice(4) do |opcode, _, _, target|
+          break if opcode == 99
+
+          raise "Something went wrong... opcode is #{opcode}" if wrong?(opcode)
+          evaluate(dup, opcode, noun, verb, target)
         end
-        break if memory[0] == target_output
+        print "\nTrying => noun: #{noun} | verb: #{verb} = dup output was #{dup[0]}"
+
+        break if dup[0] == target_output
+
       end
-      break if memory[0] == target_output
+
+      break if dup[0] == target_output
+
     end
-    memory[0] * noun + verb
+
+    return "No luck" if dup[0] != target_output
+
+    100 * noun + verb
   end
 
   private
 
-  def evaluate(opcode, noun, verb, target)
-    case opcode
-    when 1
-      @intcode[target] = @intcode[noun] + @intcode[verb]
-    when 2
-      @intcode[target] = @intcode[noun] * @intcode[verb]
-    else
-      return
+  def evaluate(dup, opcode, noun, verb, target)
+    if opcode == 1
+      dup[target] = dup[noun] + dup[verb]
+    elsif opcode == 2
+      dup[target] = dup[noun] * dup[verb]
+    elsif opcode == 99
+      return dup
     end
+    dup
   end
 
   def wrong?(opcode)
@@ -91,5 +101,5 @@ class ShipComputer
   end
 end
 
-puts "1st part: The value at position 0 is #{ShipComputer.new.run_intcode}."
-puts "2nd part: The value at position 0 is #{ShipComputer.new.moon_gravity}."
+puts "\n1st part: The value at position 0 is #{ShipComputer.new.run_intcode}."
+puts "\n2nd part: The value at position 0 is #{ShipComputer.new.moon_gravity}."
