@@ -28,13 +28,12 @@ class ShipComputer
   # Opcode 2 works exactly like opcode 1, except it multiplies the two inputs instead of adding them
   # Once you're done processing an opcode, move to the next one by stepping forward 4 positions.
 
-  def run_intcode
+  def run_intcode(x, y)
     dup = @intcode.dup
-    restore_gravity(dup)
-
+    dup = restore_gravity(dup, x, y)
     dup.each_slice(4) do |opcode, noun, verb, target|
       break if opcode == 99
-      raise "Something went wrong..." if wrong?(opcode)
+
       dup = evaluate(dup, opcode, noun, verb, target)
     end
     dup[0]
@@ -45,42 +44,24 @@ class ShipComputer
   # To do this, before running the program, replace position 1 with the value 12
   # and replace position 2 with the value 2.
   # What value is left at position 0 after the program halts?
-  def restore_gravity(dup)
-    dup[1] = 12
-    dup[2] = 2
+  def restore_gravity(dup, x, y)
+    dup[1] = x
+    dup[2] = y
+    dup
   end
 
   def moon_gravity
     target_output = 19690720
     inputs        = Array(0..99)
-    dup           = nil
-    noun          = nil
-    verb          = nil
-
 
     inputs.each do |noun|
       inputs.each do |verb|
-        dup = @intcode.dup
-
-        dup.each_slice(4) do |opcode, _, _, target|
-          break if opcode == 99
-
-          raise "Something went wrong... opcode is #{opcode}" if wrong?(opcode)
-          evaluate(dup, opcode, noun, verb, target)
-        end
-        print "\nTrying => noun: #{noun} | verb: #{verb} = dup output was #{dup[0]}"
-
-        break if dup[0] == target_output
-
+        out = run_intcode(noun, verb)
+        return 100 * noun + verb if out == target_output
       end
-
-      break if dup[0] == target_output
-
     end
 
-    return "No luck" if dup[0] != target_output
-
-    100 * noun + verb
+    return "No luck" if out != target_output
   end
 
   private
@@ -101,5 +82,5 @@ class ShipComputer
   end
 end
 
-puts "\n1st part: The value at position 0 is #{ShipComputer.new.run_intcode}."
-puts "\n2nd part: The value at position 0 is #{ShipComputer.new.moon_gravity}."
+puts "1st part: The value at position 0 is #{ShipComputer.new.run_intcode(12, 2)}."
+puts "2nd part: The value at position 0 is #{ShipComputer.new.moon_gravity}."
