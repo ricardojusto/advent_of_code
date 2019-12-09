@@ -19,14 +19,20 @@ end
 class FuelManagement
   def initialize
     @wires = Wires.new.parse.freeze
-    @wire1 = nil
-    @wire2 = nil
-  end
-
-  def run
     @wire1 = create_circuit_board(@wires.first)
     @wire2 = create_circuit_board(@wires.last)
+  end
+
+  def part_a
     manhattan_distance
+  end
+
+  def part_b
+    (@wire1.uniq & @wire2.uniq).map do |i|
+      ary1 = @wire1.index(i) + 1
+      ary2 = @wire2.index(i) + 1
+      ary1 + ary2
+    end.min
   end
 
   private
@@ -64,4 +70,5 @@ class FuelManagement
   end
 end
 
-puts "Part A: The manhattan distance is: #{FuelManagement.new.run}"
+puts "Part A: The manhattan distance is: #{FuelManagement.new.part_a}"
+puts "Part B: The least amount of steps to an intersection is: #{FuelManagement.new.part_b}"
